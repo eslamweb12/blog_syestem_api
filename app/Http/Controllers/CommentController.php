@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CommentRequest;
+use App\Http\Resources\commentResource;
 use App\Models\comment;
 use App\Models\post;
 use App\service\message;
@@ -20,7 +21,7 @@ class CommentController extends Controller
        $data['post_id']=$id;
        $data['user_id']=auth()->user()->id;
        $comment=comment::create($data);
-       return message::success('comment created successfully',201);
+       return message::success(commentResource::make($comment) , '','comment created successfully');
 
 
    }

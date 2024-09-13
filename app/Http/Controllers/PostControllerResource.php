@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PostRequest;
+use App\Http\Resources\PostResource;
 use App\Models\post;
 use App\service\message;
 use Illuminate\Http\Request;
@@ -15,16 +16,34 @@ class PostControllerResource extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api'); // Ensure this controller requires authentication
+        $this->middleware('auth:api');
     }
 
 
     public function index()
     {
-        $post = post::query()->orderBy('id', 'desc')->paginate(2);
-        return message::success($post, '');
-
+        // Fetch paginated posts with 2 posts per page
+        $posts = post::query()->orderBy('id', 'asc')->paginate(2);
+        // Return paginated posts wrapped in PostResource and include pagination metadata
+        return response()->json([
+            'data' => PostResource::collection($posts),  // Transform posts using PostResource
+            'links' => [
+                'first' => $posts->url(1),
+                'last' => $posts->url($posts->lastPage()),
+                'prev' => $posts->previousPageUrl(),
+                'next' => $posts->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $posts->currentPage(),
+                'from' => $posts->firstItem(),
+                'last_page' => $posts->lastPage(),
+                'per_page' => $posts->perPage(),
+                'to' => $posts->lastItem(),
+                'total' => $posts->total(),
+            ]
+        ]);
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -34,7 +53,7 @@ class PostControllerResource extends Controller
         $data = $request->validated();
         $data['author_id'] = auth()->user()->id;
         $newPost = post::query()->create($data);
-        return message::success($newPost, '', 'post created successfully');
+        return message::success(PostResource::make($newPost), '', 'post created successfully');
 
     }
 
@@ -43,16 +62,13 @@ class PostControllerResource extends Controller
      */
     public function show(string $id)
     {
-        if (!auth()->check()) {
-            return message::error('you are not authenticated', 401);
 
-        }
         $post = post::query()->with('author')->find($id);
         if (!$post) {
             return message::error('post not found', 403);
 
         }
-        return message::success($post, '', 'post details');
+        return message::success(PostResource::make($post), '', 'post details');
     }
 
     /**
@@ -75,7 +91,7 @@ class PostControllerResource extends Controller
         $dataValidated = $request->validated();
         $post->update($dataValidated);
 
-        return message::success($post, '', 'Post updated successfully');
+        return message::success(PostResource::make($post), '', 'Post updated successfully');
     }
 
 
@@ -102,9 +118,9 @@ class PostControllerResource extends Controller
 
     public function search(Request $request)
     {
-        $post = post::query(); // Initialize query builder
+        $post = post::query();
 
-        // Check if title is provided and filter by it
+
         if ($request->filled('title')) {
             $post->where('title', 'like', '%' . $request->input('title') . '%');
         }
@@ -117,18 +133,9 @@ class PostControllerResource extends Controller
                 $request->input('end_date')
             ]);
         }
-
-
-
-
-
-
         $posts = $post->get();
 
-
-
-        // Return the search results
-        return message::success($posts, '', 'Posts retrieved successfully');
+        return message::success(PostResource::make($posts), '', 'Posts retrieved successfully');
     }
 
 
