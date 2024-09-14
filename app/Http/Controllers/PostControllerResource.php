@@ -22,26 +22,10 @@ class PostControllerResource extends Controller
 
     public function index()
     {
-        // Fetch paginated posts with 2 posts per page
+//        $posts = post::query()->orderBy('id', 'asc')->get();
+        //for pagination
         $posts = post::query()->orderBy('id', 'asc')->paginate(2);
-        // Return paginated posts wrapped in PostResource and include pagination metadata
-        return response()->json([
-            'data' => PostResource::collection($posts),  // Transform posts using PostResource
-            'links' => [
-                'first' => $posts->url(1),
-                'last' => $posts->url($posts->lastPage()),
-                'prev' => $posts->previousPageUrl(),
-                'next' => $posts->nextPageUrl(),
-            ],
-            'meta' => [
-                'current_page' => $posts->currentPage(),
-                'from' => $posts->firstItem(),
-                'last_page' => $posts->lastPage(),
-                'per_page' => $posts->perPage(),
-                'to' => $posts->lastItem(),
-                'total' => $posts->total(),
-            ]
-        ]);
+         return postResource::collection($posts)->response()->getData(true);
     }
 
 
